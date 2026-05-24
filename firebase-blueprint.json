@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "cliente": {
+      "title": "Cliente",
+      "description": "Cadastro de clientes estéticos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "telefone": { "type": "string" },
+        "email": { "type": "string" },
+        "observacoes": { "type": "string" },
+        "dataCadastro": { "type": "string" }
+      },
+      "required": ["id", "nome", "telefone", "email", "dataCadastro"]
+    },
+    "servico": {
+      "title": "Servico",
+      "description": "Procedimentos estéticos disponíveis",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "descricao": { "type": "string" },
+        "preco": { "type": "number" },
+        "tempoEstimado": { "type": "number" }
+      },
+      "required": ["id", "nome", "descricao", "preco", "tempoEstimado"]
+    },
+    "profissional": {
+      "title": "Profissional",
+      "description": "Profissionais e esteticistas parceiros",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "especialidade": { "type": "string" },
+        "comissaoPercentual": { "type": "number" },
+        "telefone": { "type": "string" }
+      },
+      "required": ["id", "nome", "especialidade", "comissaoPercentual", "telefone"]
+    },
+    "agendamento": {
+      "title": "Agendamento",
+      "description": "Agenda de atendimentos estéticos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clienteId": { "type": "string" },
+        "servicoId": { "type": "string" },
+        "profissionalId": { "type": "string" },
+        "data": { "type": "string" },
+        "hora": { "type": "string" },
+        "valorCobrado": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pendente", "Realizado e Pago", "Cancelado"] }
+      },
+      "required": ["id", "clienteId", "servicoId", "profissionalId", "data", "hora", "valorCobrado", "status"]
+    },
+    "transacao": {
+      "title": "Transacao",
+      "description": "Fluxo de caixa unificado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tipo": { "type": "string", "enum": ["Entrada", "Saida"] },
+        "valor": { "type": "number" },
+        "data": { "type": "string" },
+        "categoria": { "type": "string" },
+        "descricao": { "type": "string" },
+        "formaPagamento": { "type": "string", "enum": ["Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Pix", "Outro"] },
+        "agendamentoId": { "type": "string" }
+      },
+      "required": ["id", "tipo", "valor", "data", "categoria", "descricao"]
+    }
+  },
+  "firestore": {
+    "/clientes/{clienteId}": {
+      "schema": "cliente",
+      "description": "Lista de clientes"
+    },
+    "/servicos/{servicoId}": {
+      "schema": "servico",
+      "description": "Procedimentos e serviços"
+    },
+    "/profissionais/{profissionalId}": {
+      "schema": "profissional",
+      "description": "Profissionais de estética"
+    },
+    "/agendamentos/{agendamentoId}": {
+      "schema": "agendamento",
+      "description": "Agendamento de sessões"
+    },
+    "/transacoes/{transacaoId}": {
+      "schema": "transacao",
+      "description": "Lançamentos financeiros de fluxo de caixa"
+    }
+  }
+}

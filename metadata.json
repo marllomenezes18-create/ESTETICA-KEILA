@@ -1,0 +1,8 @@
+{
+  "name": "Gerenciador Clínica Estética",
+  "description": "Fluxo de caixa unificado, agendamento de pacotes e cadastros completos de clientes, profissionais e procedimentos estéticos integrado com Firebase Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

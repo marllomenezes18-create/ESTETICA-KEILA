@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atelier Estética OS - Painel de Gestão e Caixa Portátil</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- High-fidelity mock initial databases ---
+    const INITIAL_CLIENTES = [
+      { id: 'c1', nome: 'Paula Ferreira', telefone: '(11) 98765-4321', email: 'paula.ferreira@email.com', observacoes: 'Pele sensível, alergia a produtos com mentol.', dataCadastro: '2026-01-15' },
+      { id: 'c2', nome: 'Juliana Rocha', telefone: '(11) 97654-3210', email: 'juliana.rocha@email.com', observacoes: 'Prefere atendimentos no período da tarde.', dataCadastro: '2026-02-10' },
+      { id: 'c3', nome: 'Gabriela Santos', telefone: '(11) 96543-2109', email: 'gabriela.santos@email.com', observacoes: 'Iniciando tratamento de microagulhamento.', dataCadastro: '2026-03-05' },
+      { id: 'c4', nome: 'Mariana Oliveira', telefone: '(11) 95432-1098', email: 'mariana.oliveira@email.com', observacoes: 'Gosta de café sem açúcar.', dataCadastro: '2026-04-20' },
+      { id: 'c5', nome: 'Fernanda Albuquerque', telefone: '(11) 94321-0987', email: 'fernanda.albu@email.com', observacoes: 'Cliente fiel semanal.', dataCadastro: '2026-05-01' }
+    ];
+
+    const INITIAL_SERVICOS = [
+      { id: 's1', nome: 'Limpeza de Pele Profunda', descricao: 'Higienização, esfoliação, extração de cravos, máscara calmante e hidratação com LED.', preco: 150.00, tempoEstimado: 60 },
+      { id: 's2', nome: 'Design de Sobrancelha com Henna', descricao: 'Mapeamento facial, pinçamento preciso e aplicação de henna para preenchimento natural.', preco: 60.00, tempoEstimado: 30 },
+      { id: 's3', nome: 'Manicure & Pedicure Completa', descricao: 'Cutilagem, modelagem de unhas, hidratação profunda e esmaltação profissional.', preco: 80.00, tempoEstimado: 50 },
+      { id: 's4', nome: 'Drenagem Linfática Corporal', descricao: 'Massagem manual suave para eliminação de toxinas, redução de inchaços e retenção hídrica.', preco: 130.00, tempoEstimado: 60 },
+      { id: 's5', nome: 'Peeling Químico Renovador', descricao: 'Aplicação de ácidos suaves para rejuvenescimento facial, clareamento e controle de oleosidade.', preco: 220.00, tempoEstimado: 45 },
+      { id: 's6', nome: 'Massagem Relaxante com Óleos', descricao: 'Massagem corporal com óleos essenciais aquecidos para alívio de tensões musculares.', preco: 110.00, tempoEstimado: 50 }
+    ];
+
+    const INITIAL_PROFISSIONAIS = [
+      { id: 'p1', nome: 'Amanda Souza', especialidade: 'Estética Facial & Corporal', comissaoPercentual: 45, telefone: '(11) 99911-2233' },
+      { id: 'p2', nome: 'Beatriz Costa', especialidade: 'Designer de Olhar & Sobrancelhas', comissaoPercentual: 50, telefone: '(11) 99922-3344' },
+      { id: 'p3', nome: 'Carolina Lima', especialidade: 'Manicure, Pedicure & Nail Art', comissaoPercentual: 60, telefone: '(11) 99933-4455' }
+    ];
+
+    const INITIAL_AGENDAMENTOS = [
+      { id: 'a1', clienteId: 'c1', servicoId: 's1', profissionalId: 'p1', data: '2026-05-21', hora: '09:00', valorCobrado: 150.00, status: 'Realizado e Pago' },
+      { id: 'a2', clienteId: 'c2', servicoId: 's2', profissionalId: 'p2', data: '2026-05-21', hora: '11:30', valorCobrado: 60.00, status: 'Realizado e Pago' },
+      { id: 'a3', clienteId: 'c3', servicoId: 's3', profissionalId: 'p3', data: '2026-05-21', hora: '14:00', valorCobrado: 80.00, status: 'Pendente' },
+      { id: 'a4', clienteId: 'c4', servicoId: 's4', profissionalId: 'p1', data: '2026-05-21', hora: '16:00', valorCobrado: 130.00, status: 'Pendente' },
+      { id: 'a5', clienteId: 'c5', servicoId: 's5', profissionalId: 'p1', data: '2026-05-22', hora: '10:00', valorCobrado: 220.00, status: 'Pendente' },
+      { id: 'a6', clienteId: 'c2', servicoId: 's2', profissionalId: 'p2', data: '2026-05-20', hora: '15:00', valorCobrado: 60.00, status: 'Realizado e Pago' },
+      { id: 'a7', clienteId: 'c1', servicoId: 's6', profissionalId: 'p1', data: '2026-05-19', hora: '13:00', valorCobrado: 110.00, status: 'Realizado e Pago' },
+      { id: 'a8', clienteId: 'c3', servicoId: 's1', profissionalId: 'p1', data: '2026-05-20', hora: '10:00', valorCobrado: 150.00, status: 'Cancelado' }
+    ];
+
+    const INITIAL_TRANSACAES = [
+      { id: 't1', tipo: 'Entrada', valor: 150.00, data: '2026-05-21', categoria: 'Serviço', descricao: 'Atendimento de Paula Ferreira: Limpeza de Pele Profunda', formaPagamento: 'Pix', agendamentoId: 'a1' },
+      { id: 't2', tipo: 'Entrada', valor: 60.00, data: '2026-05-21', categoria: 'Serviço', descricao: 'Atendimento de Juliana Rocha: Design de Sobrancelha com Henna', formaPagamento: 'Cartão de Débito', agendamentoId: 'a2' },
+      { id: 't3', tipo: 'Entrada', valor: 60.00, data: '2026-05-20', categoria: 'Serviço', descricao: 'Atendimento de Juliana Rocha: Design de Sobrancelha com Henna', formaPagamento: 'Dinheiro', agendamentoId: 'a6' },
+      { id: 't4', tipo: 'Entrada', valor: 110.00, data: '2026-05-19', categoria: 'Serviço', descricao: 'Atendimento de Paula Ferreira: Massagem Relaxante com Óleos', formaPagamento: 'Cartão de Crédito', agendamentoId: 'a7' },
+      { id: 't5', tipo: 'Entrada', valor: 120.00, data: '2026-05-20', categoria: 'Venda de Produto', descricao: 'Venda de Kit Home Care Limpeza (Sérum + Espuma de Limpeza)', formaPagamento: 'Pix' },
+      { id: 't6', tipo: 'Entrada', valor: 45.00, data: '2026-05-21', categoria: 'Venda de Produto', descricao: 'Venda de Óleo de Cutícula Hidratante Premium', formaPagamento: 'Dinheiro' },
+      { id: 't7', tipo: 'Saida', valor: 1200.00, data: '2026-05-05', categoria: 'Aluguel', descricao: 'Pagamento de Aluguel Comercial da Sala 402' },
+      { id: 't8', tipo: 'Saida', valor: 240.00, data: '2026-05-10', categoria: 'Luz', descricao: 'Fatura de Energia Elétrica - Enel Maiores Consumos' },
+      { id: 't9', tipo: 'Saida', valor: 350.00, data: '2026-05-18', categoria: 'Insumos', descricao: 'Compra de descartáveis, algodão, henna, ceras de depilação e luvas' },
+      { id: 't10', tipo: 'Saida', valor: 67.50, data: '2026-05-21', categoria: 'Comissão', descricao: 'Comissão Amanda Souza referente ao atendimento a1 de Paula Ferreira', agendamentoId: 'a1' },
+      { id: 't11', tipo: 'Saida', valor: 30.00, data: '2026-05-21', categoria: 'Comissão', descricao: 'Comissão Beatriz Costa referente ao atendimento a2 de Juliana Rocha', agendamentoId: 'a2' }
+    ];
+
+    // --- Compact Universal Icon Component ----
+    const Icon = ({ name, className = "w-4 h-4" }) => {
+      const svgs = {
+        Sparkles: <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>,
+        Calendar: <g><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></g>,
+        Receipt: <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z M16 8H8 M16 12H8 M13 16H8"/>,
+        User: <g><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>,
+        BookOpen: <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>,
+        Clock: <g><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>,
+        Heart: <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>,
+        Refresh: <g><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><polyline points="16 3 21 3 21 8"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><polyline points="8 21 3 21 3 16"/></g>,
+        DollarSign: <line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>,
+        ArrowUpRight: <g><line x1="7" x2="17" y1="17" y2="7"/><polyline points="7 7 17 7 17 17"/></g>,
+        ArrowDownRight: <g><line x1="7" x2="17" y1="7" y2="17"/><polyline points="17 7 17 17 7 17"/></g>,
+        UserPlus: <g><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/></g>,
+        ShoppingCart: <g><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></g>,
+        Scissors: <g><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="9.8" x2="20" y1="8.5" y2="19"/><line x1="9.8" x2="20" y1="15.5" y2="5"/></g>,
+        Trash: <g><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></g>,
+        Plus: <g><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></g>,
+        Check: <polyline points="20 6 9 17 4 12"/>,
+        X: <g><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></g>,
+        Filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>,
+        Search: <g><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></g>,
+        Mail: <g><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></g>,
+        Phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>,
+        Database: <g><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></g>
+      };
+
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >
+          {svgs[name] || <circle cx="12" cy="12" r="10" />}
+        </svg>
+      );
+    };
+
+    // --- MAIN APPLICATION CONTAINER ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [resetConfirm, setResetConfirm] = useState(false);
+      const [currentTimeStr, setCurrentTimeStr] = useState('20:52:54');
+
+      // Sync clock relative to real hour
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const now = new Date();
+          setCurrentTimeStr(now.toLocaleTimeString('pt-BR'));
+        }, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // Core cached state hooks
+      const [clientes, setClientes] = useState(() => {
+        const cached = localStorage.getItem('estetica_clientes');
+        return cached ? JSON.parse(cached) : INITIAL_CLIENTES;
+      });
+
+      const [servicos, setServicos] = useState(() => {
+        const cached = localStorage.getItem('estetica_servicos');
+        return cached ? JSON.parse(cached) : INITIAL_SERVICOS;
+      });
+
+      const [profissionais, setProfissionais] = useState(() => {
+        const cached = localStorage.getItem('estetica_profissionais');
+        return cached ? JSON.parse(cached) : INITIAL_PROFISSIONAIS;
+      });
+
+      const [agendamentos, setAgendamentos] = useState(() => {
+        const cached = localStorage.getItem('estetica_agendamentos');
+        return cached ? JSON.parse(cached) : INITIAL_AGENDAMENTOS;
+      });
+
+      const [transacoes, setTransacoes] = useState(() => {
+        const cached = localStorage.getItem('estetica_transacoes');
+        return cached ? JSON.parse(cached) : INITIAL_TRANSACAES;
+      });
+
+      const saveState = (c, s, p, a, t) => {
+        localStorage.setItem('estetica_clientes', JSON.stringify(c));
+        localStorage.setItem('estetica_servicos', JSON.stringify(s));
+        localStorage.setItem('estetica_profissionais', JSON.stringify(p));
+        localStorage.setItem('estetica_agendamentos', JSON.stringify(a));
+        localStorage.setItem('estetica_transacoes', JSON.stringify(t));
+      };
+
+      const makeId = () => Math.random().toString(36).substring(2, 9);
+
+      // Sincronização Síncrona Dupla de Caixa (Checkout de Atendimento + Comissão)
+      const handleCheckoutAgendamento = (id, formaPag) => {
+        const original = agendamentos.find(a => a.id === id);
+        if (!original) return;
+
+        const updatedAgendamentos = agendamentos.map(a => {
+          if (a.id === id) return { ...a, status: 'Realizado e Pago' };
+          return a;
+        });
+
+        const targetClient = clientes.find(c => c.id === original.clienteId)?.nome || 'Cliente';
+        const targetService = servicos.find(s => s.id === original.servicoId)?.nome || 'Serviço';
+        const targetProf = profissionais.find(p => p.id === original.profissionalId);
+
+        const updatedTransacoes = [...transacoes];
+
+        // 1. Entrada / Faturamento de Caixa
+        const entryId = 't-' + makeId();
+        const newEntrada = {
+          id: entryId,
+          tipo: 'Entrada',
+          valor: original.valorCobrado,
+          data: original.data,
+          categoria: 'Serviço',
+          descricao: `Atendimento de ${targetClient}: ${targetService}`,
+          formaPagamento: formaPag,
+          agendamentoId: id
+        };
+        updatedTransacoes.push(newEntrada);
+
+        // 2. Saída / Repasse de Comissão ao especialista parceiro correspondente
+        if (targetProf) {
+          const comValue = original.valorCobrado * (targetProf.comissaoPercentual / 100);
+          const commissionId = 't-' + makeId();
+          const newSaida = {
+            id: commissionId,
+            tipo: 'Saida',
+            valor: comValue,
+            data: original.data,
+            categoria: 'Comissão',
+            descricao: `Comissão ${targetProf.nome} ref. atendimento de ${targetClient}`,
+            agendamentoId: id
+          };
+          updatedTransacoes.push(newSaida);
+        }
+
+        setAgendamentos(updatedAgendamentos);
+        setTransacoes(updatedTransacoes);
+        saveState(clientes, servicos, profissionais, updatedAgendamentos, updatedTransacoes);
+      };
+
+      const handleAddAgendamento = (newA) => {
+        const agID = 'a-' + makeId();
+        const resolvedA = { ...newA, id: agID };
+
+        const updatedAgendamentos = [...agendamentos, resolvedA];
+        let updatedTransacoes = [...transacoes];
+
+        if (newA.status === 'Realizado e Pago') {
+          const targetClient = clientes.find(c => c.id === newA.clienteId)?.nome || 'Cliente';
+          const targetService = servicos.find(s => s.id === newA.servicoId)?.nome || 'Serviço';
+          const targetProf = profissionais.find(p => p.id === newA.profissionalId);
+
+          const newEntrada = {
+            id: 't-' + makeId(),
+            tipo: 'Entrada',
+            valor: newA.valorCobrado,
+            data: newA.data,
+            categoria: 'Serviço',
+            descricao: `Atendimento de ${targetClient}: ${targetService}`,
+            formaPagamento: 'Pix',
+            agendamentoId: agID
+          };
+          updatedTransacoes.push(newEntrada);
+
+          if (targetProf) {
+            const comValue = newA.valorCobrado * (targetProf.comissaoPercentual / 100);
+            const newSaida = {
+              id: 't-' + makeId(),
+              tipo: 'Saida',
+              valor: comValue,
+              data: newA.data,
+              categoria: 'Comissão',
+              descricao: `Comissão ${targetProf.nome} ref. atendimento de ${targetClient}`,
+              agendamentoId: agID
+            };
+            updatedTransacoes.push(newSaida);
+          }
+        }
+
+        setAgendamentos(updatedAgendamentos);
+        setTransacoes(updatedTransacoes);
+        saveState(clientes, servicos, profissionais, updatedAgendamentos, updatedTransacoes);
+      };
+
+      const handleCancelAgendamento = (id) => {
+        const updated = agendamentos.map(a => {
+          if (a.id === id) return { ...a, status: 'Cancelado' };
+          return a;
+        });
+        setAgendamentos(updated);
+        saveState(clientes, servicos, profissionais, updated, transacoes);
+      };
+
+      const handleDeleteAgendamento = (id) => {
+        const updatedAg = agendamentos.filter(a => a.id !== id);
+        const updatedTr = transacoes.filter(t => t.agendamentoId !== id);
+        setAgendamentos(updatedAg);
+        setTransacoes(updatedTr);
+        saveState(clientes, servicos, profissionais, updatedAg, updatedTr);
+      };
+
+      const handleAddManualTransacao = (tipo, valor, categoria, descricao, formaPag) => {
+        const newTx = {
+          id: 't-man-' + makeId(),
+          tipo,
+          valor,
+          data: '2026-05-21',
+          categoria,
+          descricao,
+          formaPagamento: formaPag || undefined
+        };
+        const updated = [...transacoes, newTx];
+        setTransacoes(updated);
+        saveState(clientes, servicos, profissionais, agendamentos, updated);
+      };
+
+      const handleDeleteTransacao = (id) => {
+        const updated = transacoes.filter(t => t.id !== id);
+        setTransacoes(updated);
+        saveState(clientes, servicos, profissionais, agendamentos, updated);
+      };
+
+      const handleAddCliente = (newC) => {
+        const freshC = { ...newC, id: 'c-' + makeId(), dataCadastro: '2026-05-21' };
+        const updated = [...clientes, freshC];
+        setClientes(updated);
+        saveState(updated, servicos, profissionais, agendamentos, transacoes);
+      };
+
+      const handleAddServico = (newS) => {
+        const freshS = { ...newS, id: 's-' + makeId() };
+        const updated = [...servicos, freshS];
+        setServicos(updated);
+        saveState(clientes, updated, profissionais, agendamentos, transacoes);
+      };
+
+      const handleAddProfissional = (newP) => {
+        const freshP = { ...newP, id: 'p-' + makeId() };
+        const updated = [...profissionais, freshP];
+        setProfissionais(updated);
+        saveState(clientes, servicos, updated, agendamentos, transacoes);
+      };
+
+      const handleDeleteCliente = (id) => {
+        const updated = clientes.filter(c => c.id !== id);
+        setClientes(updated);
+        saveState(updated, servicos, profissionais, agendamentos, transacoes);
+      };
+
+      const handleDeleteServico = (id) => {
+        const updated = servicos.filter(s => s.id !== id);
+        setServicos(updated);
+        saveState(clientes, updated, profissionais, agendamentos, transacoes);
+      };
+
+      const handleDeleteProfissional = (id) => {
+        const updated = profissionais.filter(p => p.id !== id);
+        setProfissionais(updated);
+        saveState(clientes, servicos, updated, agendamentos, transacoes);
+      };
+
+      const handleResetData = () => {
+        setClientes(INITIAL_CLIENTES);
+        setServicos(INITIAL_SERVICOS);
+        setProfissionais(INITIAL_PROFISSIONAIS);
+        setAgendamentos(INITIAL_AGENDAMENTOS);
+        setTransacoes(INITIAL_TRANSACAES);
+        saveState(INITIAL_CLIENTES, INITIAL_SERVICOS, INITIAL_PROFISSIONAIS, INITIAL_AGENDAMENTOS, INITIAL_TRANSACAES);
+        setResetConfirm(false);
+      };
+
+      return (
+        <div className="min-h-screen py-6 px-4 md:px-8 bg-slate-50 text-slate-800 font-sans">
+          {/* Header */}
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5 mb-6">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-md">
+                <Icon name="Sparkles" className="w-6 h-6 animate-pulse" />
+              </span>
+              <div>
+                <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Atelier Estética OS</h1>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">Gestão de Consultório Reativa e Caixa Integrado</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-mono select-none">
+              <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200/50 flex items-center gap-2 shadow-xs text-slate-700 font-bold">
+                <Icon name="Calendar" className="w-4 h-4 text-indigo-500" />
+                <span>21 de Maio de 2026</span>
+              </div>
+              <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200/50 flex items-center gap-2 shadow-xs text-slate-700 font-bold">
+                <Icon name="Clock" className="w-4 h-4 text-emerald-500" />
+                <span>{currentTimeStr} UTC</span>
+              </div>
+
+              {resetConfirm ? (
+                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-2 py-1 rounded-xl text-[10px]">
+                  <span className="font-bold text-amber-800">Confirmar Reset?</span>
+                  <button onClick={handleResetData} className="px-1.5 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-extrabold transition">Sim</button>
+                  <button onClick={() => setResetConfirm(false)} className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded font-extrabold transition">Não</button>
+                </div>
+              ) : (
+                <button onClick={() => setResetConfirm(true)} className="p-1.5 px-2.5 hover:bg-slate-200/60 transition bg-white border border-slate-200/50 rounded-xl text-slate-400 font-bold text-[10px] flex items-center gap-1 shadow-xs">
+                  <Icon name="Refresh" className="w-3.5 h-3.5" /> Reconfigurar Dados
+                </button>
+              )}
+            </div>
+          </div>
+
+          <main className="w-full max-w-7xl mx-auto space-y-6">
+            {/* Tabs Trigger Navigation */}
+            <div className="flex flex-wrap border-b border-slate-200 gap-1.5">
+              {[
+                { id: 'dashboard', label: 'Painel Geral', icon: 'Heart' },
+                { id: 'agenda', label: 'Agenda & Serviços', icon: 'Calendar' },
+                { id: 'financeiro', label: 'Caixa & Comissões', icon: 'Receipt' },
+                { id: 'cadastro', label: 'Cadastros Gerais', icon: 'User' },
+                { id: 'documentacao', label: 'Especificações BD', icon: 'BookOpen' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`py-2 px-4 text-xs font-extrabold transition-all flex items-center gap-2 border-b-2 font-sans cursor-pointer ${
+                    activeTab === t.id ? 'border-indigo-600 text-indigo-600 bg-white shadow-xs rounded-t-xl' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon name={t.icon} className="w-4 h-4" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Views Switching */}
+            <div className="py-1 animate-fade-in">
+              {activeTab === 'dashboard' && (
+                <DashboardTab
+                  clientes={clientes}
+                  servicos={servicos}
+                  profissionais={profissionais}
+                  agendamentos={agendamentos}
+                  transacoes={transacoes}
+                  onCheckoutAgendamento={handleCheckoutAgendamento}
+                  onAddManualTransacao={handleAddManualTransacao}
+                  setActiveTab={setActiveTab}
+                />
+              )}
+
+              {activeTab === 'agenda' && (
+                <AgendaTab
+                  clientes={clientes}
+                  servicos={servicos}
+                  profissionais={profissionais}
+                  agendamentos={agendamentos}
+                  onAddAgendamento={handleAddAgendamento}
+                  onCheckoutAgendamento={handleCheckoutAgendamento}
+                  onCancelAgendamento={handleCancelAgendamento}
+                  onDeleteAgendamento={handleDeleteAgendamento}
+                />
+              )}
+
+              {activeTab === 'financeiro' && (
+                <FinanceiroTab
+                  transacoes={transacoes}
+                  onAddManualTransacao={handleAddManualTransacao}
+                  onDeleteTransacao={handleDeleteTransacao}
+                />
+              )}
+
+              {activeTab === 'cadastro' && (
+                <CadastroTab
+                  clientes={clientes}
+                  servicos={servicos}
+                  profissionais={profissionais}
+                  agendamentos={agendamentos}
+                  onAddCliente={handleAddCliente}
+                  onAddServico={handleAddServico}
+                  onAddProfissional={handleAddProfissional}
+                  onDeleteCliente={handleDeleteCliente}
+                  onDeleteServico={handleDeleteServico}
+                  onDeleteProfissional={handleDeleteProfissional}
+                />
+              )}
+
+              {activeTab === 'documentacao' && <DocumentacaoTab />}
+            </div>
+
+            <footer className="pt-10 pb-6 text-center text-[10px] text-slate-400 border-t border-slate-200">
+              <p>Atelier Estética OS © 2026 • Pacote Portátil Offline Autorregular de Caixa Geral e Clientes.</p>
+            </footer>
+          </main>
+        </div>
+      );
+    }
+
+    // --- SUBVIEW 1: DASHBOARD ---
+    function DashboardTab({ clientes, servicos, profissionais, agendamentos, transacoes, onCheckoutAgendamento, onAddManualTransacao, setActiveTab }) {
+      const HOJE_STR = '2026-05-21';
+      const totInputs = useMemo(() => transacoes.filter(t => t.tipo === 'Entrada').reduce((acc, t) => acc + t.valor, 0), [transacoes]);
+      const totOutputs = useMemo(() => transacoes.filter(t => t.tipo === 'Saida').reduce((acc, t) => acc + t.valor, 0), [transacoes]);
+      const balance = totInputs - totOutputs;
+
+      const agHoje = agendamentos.filter(a => a.data === HOJE_STR);
+      const agRealizados = agHoje.filter(a => a.status === 'Realizado e Pago');
+      const agPendentes = agHoje.filter(a => a.status === 'Pendente');
+
+      const inputsHoje = transacoes.filter(t => t.tipo === 'Entrada' && t.data === HOJE_STR).reduce((s, t) => s + t.valor, 0);
+      const saidasHoje = transacoes.filter(t => t.tipo === 'Saida' && t.data === HOJE_STR).reduce((s, t) => s + t.valor, 0);
+
+      const servicosSum = transacoes.filter(t => t.tipo === 'Entrada' && t.categoria === 'Serviço').reduce((s, t) => s + t.valor, 0);
+      const prodSum = transacoes.filter(t => t.tipo === 'Entrada' && t.categoria === 'Venda de Produto').reduce((s, t) => s + t.valor, 0);
+      const despSum = transacoes.filter(t => t.tipo === 'Saida' && t.categoria !== 'Comissão').reduce((s, t) => s + t.valor, 0);
+      const comSum = transacoes.filter(t => t.tipo === 'Saida' && t.categoria === 'Comissão').reduce((s, t) => s + t.valor, 0);
+
+      const percServ = totInputs > 0 ? (servicosSum / totInputs) * 100 : 0;
+      const percProd = totInputs > 0 ? (prodSum / totInputs) * 100 : 0;
+      const percDesp = totOutputs > 0 ? (despSum / totOutputs) * 100 : 0;
+      const percCom = totOutputs > 0 ? (comSum / totOutputs) * 100 : 0;
+
+      return (
+        <div className="space-y-6">
+          {/* Card list */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Saldo Consolidado</span>
+                <h4 className={`text-xl font-extrabold ${balance >= 0 ? 'text-indigo-950' : 'text-rose-600'}`}>R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                <p className="text-[9px] text-slate-400">Patrimônio livre atual</p>
+              </div>
+              <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600"><Icon name="DollarSign" /></div>
+            </div>
+
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Entradas Acumuladas</span>
+                <h4 className="text-xl font-extrabold text-emerald-600">R$ {totInputs.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">+{inputsHoje.toFixed(2)} hoje</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600"><Icon name="ArrowUpRight" /></div>
+            </div>
+
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Saídas e Repasses</span>
+                <h4 className="text-xl font-extrabold text-rose-600">R$ {totOutputs.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                <p className="text-[9px] text-rose-600 font-bold flex items-center gap-1">-{saidasHoje.toFixed(2)} hoje</p>
+              </div>
+              <div className="p-3 rounded-xl bg-rose-50 text-rose-600"><Icon name="ArrowDownRight" /></div>
+            </div>
+
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Agenda de Hoje (21/05)</span>
+                <h4 className="text-xl font-extrabold text-indigo-950">{agHoje.length} Atendimentos</h4>
+                <p className="text-[9px] text-indigo-600 font-bold">{agRealizados.length} Concluídos • {agPendentes.length} Livres</p>
+              </div>
+              <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600"><Icon name="Calendar" /></div>
+            </div>
+          </div>
+
+          {/* Quick Actions and charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 space-y-6">
+              {/* Actions panel */}
+              <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs">
+                <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Ações Contábeis Rápidas</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <button onClick={() => setActiveTab('agenda')} className="p-3 bg-indigo-50 border border-indigo-100/50 hover:bg-indigo-100/60 rounded-xl text-center text-indigo-700 font-bold text-xs flex flex-col items-center justify-center gap-2 transition">
+                    <Icon name="Calendar" className="w-5 h-5" /> Novo Agendamento
+                  </button>
+                  <button onClick={() => setActiveTab('cadastro')} className="p-3 bg-indigo-50 border border-indigo-100/50 hover:bg-indigo-100/60 rounded-xl text-center text-indigo-700 font-bold text-xs flex flex-col items-center justify-center gap-2 transition">
+                    <Icon name="UserPlus" className="w-5 h-5" /> Inserir Cliente
+                  </button>
+                  <button onClick={() => setActiveTab('financeiro')} className="p-3 bg-rose-50 border border-rose-100/50 hover:bg-rose-100/60 rounded-xl text-center text-rose-700 font-bold text-xs flex flex-col items-center justify-center gap-2 transition">
+                    <Icon name="ArrowDownRight" className="w-5 h-5" /> Lançar Saída
+                  </button>
+                  <button onClick={() => setActiveTab('financeiro')} className="p-3 bg-emerald-50 border border-emerald-100/50 hover:bg-emerald-100/60 rounded-xl text-center text-emerald-700 font-bold text-xs flex flex-col items-center justify-center gap-2 transition">
+                    <Icon name="ShoppingCart" className="w-5 h-5" /> Vender Cosmético
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress categories */}
+              <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs space-y-4">
+                <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">Divisão Orçamentária por Canal</h2>
+                <div className="space-y-3.5">
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-500">Atendimentos Clínicos (Entrada)</span>
+                      <span className="text-slate-900 font-bold">R$ {servicosSum.toFixed(2)} ({Math.round(percServ)}%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-indigo-600 h-2" style={{ width: `${percServ}%` }}></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-500">Venda de Produtos Cosméticos (Entrada)</span>
+                      <span className="text-slate-900 font-bold">R$ {prodSum.toFixed(2)} ({Math.round(percProd)}%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-2" style={{ width: `${percProd}%` }}></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-500">Custo Operacional Fixo (Saída)</span>
+                      <span className="text-slate-900 font-bold">R$ {despSum.toFixed(2)} ({Math.round(percDesp)}% saídas)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-rose-500 h-2" style={{ width: `${percDesp}%` }}></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-500">Repasse de Comissões (Saída)</span>
+                      <span className="text-slate-900 font-bold">R$ {comSum.toFixed(2)} ({Math.round(percCom)}% saídas)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-amber-500 h-2" style={{ width: `${percCom}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Column agenda hoje */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xs font-black text-slate-800 uppercase">Consultas e Fila de Hoje</h3>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] bg-indigo-50 text-indigo-700 font-mono font-bold animate-pulse">21/05 Live</span>
+                </div>
+
+                {agHoje.length === 0 ? (
+                  <p className="text-center py-6 text-slate-400 text-xs">Vazio hoje.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {agHoje.map(a => {
+                      const c = clientes.find(item => item.id === a.clienteId);
+                      const s = servicos.find(item => item.id === a.servicoId);
+                      const p = profissionais.find(item => item.id === a.profissionalId);
+
+                      return (
+                        <div key={a.id} className="p-3 border border-slate-100 hover:border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition rounded-xl flex justify-between items-center text-xs">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono bg-indigo-50 border border-indigo-100 text-indigo-700 font-black px-1.5 py-0.5 rounded text-[9px]">{a.hora}</span>
+                              <span className="font-semibold text-slate-800 truncate">{c ? c.nome : 'Cliente'}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500">Procedimento: {s ? s.nome : 'Serviço'}</div>
+                            <div className="font-bold text-slate-700 font-mono">R$ {a.valorCobrado.toFixed(2)}</div>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            {a.status === 'Realizado e Pago' ? (
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-black text-[9px]">Pago e Feito</span>
+                            ) : a.status === 'Cancelado' ? (
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-400 text-[9px]">Cancelado</span>
+                            ) : (
+                              <div className="space-y-1">
+                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[9px] block">Pendente</span>
+                                <button onClick={() => onCheckoutAgendamento(a.id, 'Pix')} className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[9px] font-black tracking-wide uppercase shadow-xs transition">Quitar c/ Pix</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- SUBVIEW 2: AGENDA TAB ----
+    function AgendaTab({ clientes, servicos, profissionais, agendamentos, onAddAgendamento, onCheckoutAgendamento, onCancelAgendamento, onDeleteAgendamento }) {
+      const [filterDate, setFilterDate] = useState('2026-05-21');
+      const [search, setSearch] = useState('');
+      const [showForm, setShowForm] = useState(false);
+      const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+      const [errorMsg, setErrorMsg] = useState(null);
+
+      // Form local state
+      const [formCl, setFormCl] = useState('');
+      const [formSrv, setFormSrv] = useState('');
+      const [formProf, setFormProf] = useState('');
+      const [formVal, setFormVal] = useState('');
+      const [formTime, setFormTime] = useState('');
+      const [formStatus, setFormStatus] = useState('Pendente');
+
+      const handleServiceSelect = (id) => {
+        setFormSrv(id);
+        const price = servicos.find(s => s.id === id)?.preco;
+        if (price) setFormVal(price.toString());
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setErrorMsg(null);
+        if (!formCl || !formSrv || !formProf || !formTime || !formVal) {
+          setErrorMsg('Preencha os campos obrigatórios!');
+          return;
+        }
+
+        onAddAgendamento({
+          clienteId: formCl,
+          servicoId: formSrv,
+          profissionalId: formProf,
+          data: filterDate,
+          hora: formTime,
+          valorCobrado: parseFloat(formVal),
+          status: formStatus
+        });
+
+        // clear
+        setFormCl('');
+        setFormSrv('');
+        setFormProf('');
+        setFormVal('');
+        setFormTime('');
+        setFormStatus('Pendente');
+        setShowForm(false);
+      };
+
+      const filtered = agendamentos.filter(a => {
+        const matchesDate = a.data === filterDate;
+        const c = clientes.find(item => item.id === a.clienteId)?.nome || '';
+        const s = servicos.find(item => item.id === a.servicoId)?.nome || '';
+        const matchesSearch = c.toLowerCase().includes(search.toLowerCase()) || s.toLowerCase().includes(search.toLowerCase());
+        return matchesDate && matchesSearch;
+      });
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 space-y-4">
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+                <div>
+                  <h2 className="text-sm font-black text-slate-800 uppercase">Consultas Agendadas</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Listagem por data selecionada</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="p-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-indigo-600 bg-slate-50"/>
+                  <button onClick={() => setShowForm(!showForm)} className="p-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 border border-indigo-600 shadow-xs transition">
+                    <Icon name="Plus" /> Lançar Atendimento
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative mb-4">
+                <span className="absolute left-3 top-2.5 text-slate-400"><Icon name="Search" /></span>
+                <input type="text" placeholder="Filtrar por nome do cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 p-2 text-xs border border-slate-200 rounded-xl focus:outline-indigo-600" />
+              </div>
+
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs">A recepção não identificou atendimentos nesta data.</div>
+              ) : (
+                <div className="space-y-3.5">
+                  {filtered.map(a => {
+                    const c = clientes.find(i => i.id === a.clienteId);
+                    const s = servicos.find(i => i.id === a.servicoId);
+                    const p = profissionais.find(i => i.id === a.profissionalId);
+
+                    return (
+                      <div key={a.id} className="p-3.5 border border-slate-100 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs bg-slate-50/50 hover:bg-slate-50 transition">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-indigo-50 border border-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-black">{a.hora}</span>
+                            <span className="font-bold text-slate-800">{c ? c.nome : 'Cliente'}</span>
+                          </div>
+                          <div className="text-slate-500 font-medium">Procedimento: <span className="text-slate-800 font-semibold">{s ? s.nome : 'Serviço'}</span> • Atendedora: <span className="text-slate-800 font-semibold">{p ? p.nome : 'Profissional'}</span></div>
+                          <div className="font-black text-slate-700 font-mono">Cobrado: R$ {a.valorCobrado.toFixed(2)}</div>
+                        </div>
+
+                        <div className="flex items-center gap-2 md:self-center">
+                          {a.status === 'Realizado e Pago' ? (
+                            <span className="px-2.5 py-1 text-[10px] rounded-xl bg-emerald-50 text-emerald-800 font-extrabold border border-emerald-200">Realizado e Pago</span>
+                          ) : a.status === 'Cancelado' ? (
+                            <span className="px-2.5 py-1 text-[10px] rounded-xl bg-slate-100 text-slate-400 font-extrabold">Cancelado</span>
+                          ) : (
+                            <div className="flex items-center gap-1.5 bg-amber-50 p-1 rounded-xl border border-amber-200 text-[10px]">
+                              <span className="font-bold text-amber-700 px-1">Pendente</span>
+                              <button onClick={() => onCheckoutAgendamento(a.id, 'Pix')} className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[9px] font-bold transition">Pix</button>
+                              <button onClick={() => onCheckoutAgendamento(a.id, 'Dinheiro')} className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[9px] font-bold transition">Cash</button>
+                              <button onClick={() => onCancelAgendamento(a.id)} className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded text-[9px] font-medium transition font-bold">Cancelar</button>
+                            </div>
+                          )}
+
+                          {/* Deletion confirer inline explicitly solving iframe restriction of alert/confirm dialog */}
+                          {deleteConfirmId === a.id ? (
+                            <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xl text-[10px]">
+                              <span className="font-extrabold text-rose-700">Deletar?</span>
+                              <button onClick={() => { onDeleteAgendamento(a.id); setDeleteConfirmId(null); }} className="px-1.5 py-0.5 bg-rose-600 text-white rounded text-[9px] font-bold cursor-pointer hover:bg-rose-700 transition">Sim</button>
+                              <button onClick={() => setDeleteConfirmId(null)} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[9px] font-bold cursor-pointer hover:bg-slate-300 transition">Não</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setDeleteConfirmId(a.id)} className="p-1 px-2 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-slate-100 transition" title="Excluir agendamento"><Icon name="Trash" /></button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-4">
+            {showForm && (
+              <form onSubmit={handleSubmit} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs space-y-3.5 animate-fade-in text-xs font-sans">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <h3 className="font-black text-slate-800 uppercase flex items-center gap-1"><Icon name="Plus"/> Agendar Atendimento</h3>
+                  <button type="button" onClick={() => { setShowForm(false); setErrorMsg(null); }} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Icon name="X" /></button>
+                </div>
+
+                {errorMsg && (
+                  <div className="p-2 bg-rose-5 border border-rose-100 text-rose-700 font-bold rounded-lg">{errorMsg}</div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Cliente*</label>
+                  <select value={formCl} onChange={(e) => setFormCl(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                    <option value="">Selecione um cliente...</option>
+                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Procedimento Estético*</label>
+                  <select value={formSrv} onChange={(e) => handleServiceSelect(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                    <option value="">Selecione o serviço...</option>
+                    {servicos.map(s => <option key={s.id} value={s.id}>{s.nome} (R$ {s.preco})</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Esteticista Parceira*</label>
+                  <select value={formProf} onChange={(e) => setFormProf(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                    <option value="">Selecione a profissional...</option>
+                    {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome} (Comissão: {p.comissaoPercentual}%)</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="block text-slate-600 font-bold">Horário*</label>
+                    <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-slate-600 font-bold">Preço Cobrado (R$)*</label>
+                    <input type="number" step="0.01" value={formVal} onChange={(e) => setFormVal(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600" />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Status Inicial</label>
+                  <select value={formStatus} onChange={(e) => setFormStatus(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                    <option value="Pendente">Aguardando / Pendente</option>
+                    <option value="Realizado e Pago">Realizado e Pago Instantaneamente</option>
+                  </select>
+                </div>
+
+                <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-center font-extrabold flex justify-center items-center gap-1 transition">
+                  <Icon name="Check" /> Lançar na Agenda
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // --- SUBVIEW 3: FINANCIAL CAIXA TAB ---
+    function FinanceiroTab({ transacoes, onAddManualTransacao, onDeleteTransacao }) {
+      const [filterTipo, setFilterTipo] = useState('Todos');
+      const [filterCat, setFilterCat] = useState('Todos');
+      const [showForm, setShowForm] = useState(null);
+      const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+      const [errorMsg, setErrorMsg] = useState(null);
+
+      // Form local state
+      const [formVal, setFormVal] = useState('');
+      const [formDesc, setFormDesc] = useState('');
+      const [formCat, setFormCat] = useState('');
+      const [formPag, setFormPag] = useState('Pix');
+
+      const handleAddManualSubmit = (e) => {
+        e.preventDefault();
+        setErrorMsg(null);
+        const val = parseFloat(formVal);
+        if (isNaN(val) || val <= 0) {
+          setErrorMsg('O valor informado precisa ser maior que zero.');
+          return;
+        }
+        if (!formDesc) {
+          setErrorMsg('Adicione uma breve descrição para controle.');
+          return;
+        }
+        if (!formCat) {
+          setErrorMsg('Designe uma categoria válida.');
+          return;
+        }
+
+        onAddManualTransacao(showForm, val, formCat, formDesc, showForm === 'Entrada' ? formPag : undefined);
+        setFormVal('');
+        setFormDesc('');
+        setFormCat('');
+        setShowForm(null);
+      };
+
+      const categoriesList = ['Todos', 'Serviço', 'Venda de Produto', 'Aluguel', 'Luz', 'Insumos', 'Comissão', 'Outros'];
+
+      const filtered = transacoes.filter(t => {
+        const matchesTipo = filterTipo === 'Todos' || t.tipo === filterTipo;
+        const matchesCat = filterCat === 'Todos' || t.categoria === filterCat;
+        return matchesTipo && matchesCat;
+      });
+
+      const totalIn = useMemo(() => transacoes.filter(t => t.tipo === 'Entrada').reduce((a, t) => a + t.valor, 0), [transacoes]);
+      const totalOut = useMemo(() => transacoes.filter(t => t.tipo === 'Saida').reduce((a, t) => a + t.valor, 0), [transacoes]);
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs">
+          <div className="lg:col-span-8 space-y-4">
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-sm font-black text-slate-800 uppercase">Livro de Fluxo de Caixa</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Conciliação de faturamentos e custos diários</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} className="p-2 border border-slate-200 rounded-xl text-xs font-bold focus:outline-indigo-600 bg-slate-50">
+                    <option value="Todos">Todos Fluxos (E/S)</option>
+                    <option value="Entrada">Entradas (+)</option>
+                    <option value="Saida">Saídas (-)</option>
+                  </select>
+
+                  <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="p-2 border border-slate-200 rounded-xl text-xs font-bold focus:outline-indigo-600 bg-slate-50">
+                    {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">Nenhum registro contábil localizado com o filtro inserido.</div>
+              ) : (
+                <div className="space-y-3.5">
+                  {filtered.map(t => (
+                    <div key={t.id} className="p-3 border border-slate-100 rounded-xl flex items-center justify-between gap-3 text-xs bg-slate-50/50 hover:bg-slate-50 transition">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 font-bold rounded-xl text-[9px] ${t.tipo === 'Entrada' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' : 'bg-rose-50 text-rose-800 border-rose-100'} border`}>{t.tipo}</span>
+                          <span className="font-mono text-slate-400 text-[10px]">{t.data}</span>
+                          <span className="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{t.categoria}</span>
+                        </div>
+                        <p className="text-slate-600 font-medium">{t.descricao} {t.formaPagamento && <span className="text-[10px] text-slate-400 font-bold">• {t.formaPagamento}</span>}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-mono font-bold text-sm ${t.tipo === 'Entrada' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {t.tipo === 'Entrada' ? '+' : '-'} R$ {t.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+
+                        {deleteConfirmId === t.id ? (
+                          <div className="flex items-center gap-1 bg-amber-50 rounded-xl border border-amber-200 px-2 py-1 text-[10px]">
+                            <span className="font-bold text-amber-800">Deseja apagar?</span>
+                            <button onClick={() => { onDeleteTransacao(t.id); setDeleteConfirmId(null); }} className="px-1.5 py-0.5 bg-rose-600 text-white rounded text-[9px] font-bold">Sim</button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded text-[9px] font-bold">Não</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirmId(t.id)} className="p-1 px-1.5 text-slate-300 hover:text-rose-500 rounded hover:bg-slate-50 transition" title="Excluir"><Icon name="Trash" /></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-4">
+            <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-xs flex justify-between gap-2.5">
+              <button onClick={() => { setShowForm('Entrada'); setFormCat('Venda de Produto'); setErrorMsg(null); }} className={`flex-1 py-2 font-black rounded-xl text-center border cursor-pointer transition ${showForm === 'Entrada' ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-emerald-50/50 border-emerald-100 text-emerald-800 hover:bg-emerald-100'}`}>+ Entrada</button>
+              <button onClick={() => { setShowForm('Saida'); setFormCat('Insumos'); setErrorMsg(null); }} className={`flex-1 py-2 font-black rounded-xl text-center border cursor-pointer transition ${showForm === 'Saida' ? 'bg-rose-600 border-rose-600 text-white shadow-md' : 'bg-rose-50/50 border-rose-100 text-rose-800 hover:bg-rose-100'}`}>- Saída</button>
+            </div>
+
+            {showForm && (
+              <form onSubmit={handleAddManualSubmit} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs space-y-3.5 animate-fade-in text-xs font-sans">
+                <div className="flex justify-between items-center pb-2 border-b border-rose-100">
+                  <span className="font-black text-slate-700 uppercase">Lançar {showForm} Manual</span>
+                  <button type="button" onClick={() => setShowForm(null)} className="text-slate-400 p-1 hover:bg-slate-100 rounded-lg"><Icon name="X" /></button>
+                </div>
+
+                {errorMsg && (
+                  <div className="p-2 bg-rose-5 border border-rose-100 text-rose-700 font-bold rounded-lg">{errorMsg}</div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Valor Monetário (R$)*</label>
+                  <input type="number" step="0.01" value={formVal} onChange={(e) => setFormVal(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Categoria de Lançamento*</label>
+                  <select value={formCat} onChange={(e) => setFormCat(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                    {showForm === 'Entrada' ? (
+                      <>
+                        <option value="Venda de Produto">Venda de Produto Cosmético</option>
+                        <option value="Serviço">Faturamento de Estética Especial</option>
+                        <option value="Outros">Outras Entradas</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Aluguel">Aluguel Comercial Recorrente</option>
+                        <option value="Luz">Luz / Conta de Energia Elétrica</option>
+                        <option value="Insumos">Insumos (Algodão, Descartáveis, Ceras)</option>
+                        <option value="Comissão">Parceira Reforço Comissão</option>
+                        <option value="Outros">Outras Despesas</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-bold">Histórico / Descricação do Lançamento*</label>
+                  <input type="text" placeholder="Histórico breve descritivo..." value={formDesc} onChange={(e) => setFormDesc(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600" />
+                </div>
+
+                {showForm === 'Entrada' && (
+                  <div className="space-y-1">
+                    <label className="block text-slate-600 font-bold">Meio de Recebimento</label>
+                    <select value={formPag} onChange={(e) => setFormPag(e.target.value)} className="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 focus:outline-indigo-600">
+                      <option value="Pix">Pix Instantâneo</option>
+                      <option value="Dinheiro">Dinheiro vivo</option>
+                      <option value="Cartão de Débito">Cartão de Débito (Maquininha)</option>
+                      <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    </select>
+                  </div>
+                )}
+
+                <button type="submit" className={`w-full py-2 text-white rounded-xl text-center font-extrabold flex justify-center items-center gap-1 transition ${showForm === 'Entrada' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
+                  <Icon name="Check" /> Consolidar em Caixa
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // --- SUBVIEW 4: CATALOG DESIGN GENERALS ---
+    function CadastroTab({ clientes, servicos, profissionais, agendamentos, onAddCliente, onAddServico, onAddProfissional, onDeleteCliente, onDeleteServico, onDeleteProfissional }) {
+      const [localTab, setLocalTab] = useState('cli');
+      const [clinId, setClinId] = useState(null); // Timeline view client ID
+      const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+      // Cli form
+      const [cliNome, setCliNome] = useState('');
+      const [cliTel, setCliTel] = useState('');
+      const [cliMail, setCliMail] = useState('');
+      const [cliObs, setCliObs] = useState('');
+
+      // Srv form
+      const [srvNome, setSrvNome] = useState('');
+      const [srvDesc, setSrvDesc] = useState('');
+      const [srvPreco, setSrvPreco] = useState('');
+      const [srvTempo, setSrvTempo] = useState('');
+
+      // Prof form
+      const [profNome, setProfNome] = useState('');
+      const [profEsp, setProfEsp] = useState('');
+      const [profCom, setProfCom] = useState('');
+      const [profTel, setProfTel] = useState('');
+
+      const handleCliSubmit = (e) => {
+        e.preventDefault();
+        if (!cliNome || !cliTel) return;
+        onAddCliente({ nome: cliNome, telefone: cliTel, email: cliMail, observacoes: cliObs });
+        setCliNome(''); setCliTel(''); setCliMail(''); setCliObs('');
+      };
+
+      const handleSrvSubmit = (e) => {
+        e.preventDefault();
+        if (!srvNome || !srvPreco || !srvTempo) return;
+        onAddServico({ nome: srvNome, descricao: srvDesc, preco: parseFloat(srvPreco), tempoEstimado: parseInt(srvTempo) });
+        setSrvNome(''); setSrvDesc(''); setSrvPreco(''); setSrvTempo('');
+      };
+
+      const handleProfSubmit = (e) => {
+        e.preventDefault();
+        if (!profNome || !profCom) return;
+        onAddProfissional({ nome: profNome, especialidade: profEsp, comissaoPercentual: parseFloat(profCom), telefone: profTel });
+        setProfNome(''); setProfEsp(''); setProfCom(''); setProfTel('');
+      };
+
+      // Recupere histórico de agendamentos d'um cliente
+      const clientHistory = useMemo(() => {
+        if (!clinId) return [];
+        return agendamentos.filter(a => a.clienteId === clinId).sort((x, y) => y.data.localeCompare(x.data));
+      }, [agendamentos, clinId]);
+
+      const clientSummary = useMemo(() => {
+        if (!clinId) return null;
+        return clientes.find(c => c.id === clinId);
+      }, [clientes, clinId]);
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs font-sans">
+          <div className="lg:col-span-8 space-y-4">
+            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-xs">
+              <div className="flex border-b border-slate-200/60 pb-3 mb-4 gap-1">
+                <button onClick={() => { setLocalTab('cli'); setClinId(null); setDeleteConfirmId(null); }} className={`px-4 py-2 font-black rounded-lg transition ${localTab === 'cli' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-800'}`}>Clientes ({clientes.length})</button>
+                <button onClick={() => { setLocalTab('srv'); setClinId(null); setDeleteConfirmId(null); }} className={`px-4 py-2 font-black rounded-lg transition ${localTab === 'srv' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-800'}`}>Procedimentos ({servicos.length})</button>
+                <button onClick={() => { setLocalTab('prof'); setClinId(null); setDeleteConfirmId(null); }} className={`px-4 py-2 font-black rounded-lg transition ${localTab === 'prof' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-800'}`}>Esteticistas ({profissionais.length})</button>
+              </div>
+
+              {localTab === 'cli' && (
+                <div className="space-y-3.5">
+                  {clientes.map(c => (
+                    <div key={c.id} className="p-3 border border-slate-50 hover:bg-slate-50/60 rounded-xl flex items-center justify-between text-xs transition">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-slate-800 text-[13px] block">{c.nome}</span>
+                        <div className="text-slate-400 flex flex-wrap gap-2 text-[10px]">
+                          <span>📱 {c.telefone}</span>
+                          <span>|</span>
+                          <span>📧 {c.email || 'Não informado'}</span>
+                        </div>
+                        {c.observacoes && <p className="text-[10px] text-indigo-900 bg-indigo-50/40 p-1 px-2 rounded border border-indigo-100/50 italic mt-1">Notas: {c.observacoes}</p>}
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => setClinId(c.id)} className="p-1.5 px-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-bold transition">Atendimentos</button>
+                        
+                        {deleteConfirmId === c.id ? (
+                          <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xl text-[10px]">
+                            <span className="font-extrabold text-rose-700">Deseja remover?</span>
+                            <button onClick={() => { if (clinId === c.id) setClinId(null); onDeleteCliente(c.id); setDeleteConfirmId(null); }} className="px-1.5 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[9px] font-bold">Sim</button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded text-[9px] font-bold">Não</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirmId(c.id)} className="p-1 px-2 text-slate-300 hover:text-rose-500 rounded"><Icon name="Trash" /></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {localTab === 'srv' && (
+                <div className="space-y-3.5">
+                  {servicos.map(s => (
+                    <div key={s.id} className="p-3 border border-slate-50 hover:bg-slate-50/60 rounded-xl flex justify-between items-center transition">
+                      <div>
+                        <span className="font-bold text-slate-800 text-[13px] block">{s.nome} <span className="text-[10px] text-slate-400 font-mono">🕒 {s.tempoEstimado} min</span></span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{s.descricao}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 font-mono text-xs font-bold text-slate-800 shrink-0">
+                        <span>R$ {s.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        {deleteConfirmId === s.id ? (
+                          <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xl text-[10px]">
+                            <button onClick={() => { onDeleteServico(s.id); setDeleteConfirmId(null); }} className="px-1.5 py-0.5 bg-rose-600 text-white rounded text-[9px] font-bold">Excluir</button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[9px] font-bold">X</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirmId(s.id)} className="p-1 px-2 text-slate-300 hover:text-rose-500 rounded-lg"><Icon name="Trash" /></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {localTab === 'prof' && (
+                <div className="space-y-3.5">
+                  {profissionais.map(p => (
+                    <div key={p.id} className="p-3 border border-slate-100 hover:bg-slate-50/60 rounded-xl flex items-center justify-between transition">
+                      <div>
+                        <span className="font-bold text-slate-800 text-[13px] block">{p.nome} <span className="bg-amber-50 text-amber-800 font-bold px-1.5 py-0.5 rounded text-[9px] border border-amber-200 marginLeft">Comissão: {p.comissaoPercentual}%</span></span>
+                        <div className="text-slate-400 text-[10px] flex gap-2 mt-0.5">
+                          <span>🎯 {p.especialidade}</span>
+                          <span>📱 {p.telefone}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {deleteConfirmId === p.id ? (
+                          <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xl text-[10px]">
+                            <button onClick={() => { onDeleteProfissional(p.id); setDeleteConfirmId(null); }} className="px-1.5 py-0.5 bg-rose-600 text-white rounded text-[9px] font-bold">Sim</button>
+                            <button onClick={() => setDeleteConfirmId(null)} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[9px] font-bold">Não</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirmId(p.id)} className="p-1 px-2 text-slate-300 hover:text-rose-500 rounded-lg"><Icon name="Trash" /></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-4">
+            {/* Timeline modal inline panel */}
+            {clinId && clientSummary && (
+              <div className="p-5 bg-white border border-indigo-100 rounded-2xl shadow-xs space-y-4 animate-fade-in font-sans text-xs">
+                <div className="flex justify-between items-center pb-2 border-b border-indigo-100">
+                  <h3 className="font-extrabold text-slate-800 uppercase">Evolução de {clientSummary.nome}</h3>
+                  <button onClick={() => setClinId(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Icon name="X" /></button>
+                </div>
+
+                <div className="space-y-1 bg-indigo-50/20 p-2.5 rounded-xl border border-indigo-100/40 text-[11px] text-indigo-950">
+                  <span className="font-extrabold text-indigo-900 block mb-0.5">Ficha Clínica Rápida</span>
+                  <p>Notas Médicas: {clientSummary.observacoes || 'Nenhuma alergia relatada pelo parceiro estético.'}</p>
+                </div>
+
+                {clientHistory.length === 0 ? (
+                  <p className="text-center text-slate-400 py-4">Nenhum atendimento realizado até o momento.</p>
+                ) : (
+                  <div className="space-y-3.5 pl-3 border-l-2 border-indigo-100 text-xs">
+                    {clientHistory.map(h => {
+                      const sName = servicos.find(s => s.id === h.servicoId)?.nome || 'Serviço';
+                      return (
+                        <div key={h.id} className="relative space-y-0.5">
+                          <span className="absolute -left-[17px] top-[4px] w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white"></span>
+                          <span className="font-mono text-[10px] text-slate-400 block font-semibold">{h.data} • {h.hora}</span>
+                          <span className="font-bold text-slate-800 block">{sName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-700">R$ {h.valorCobrado.toFixed(2)}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${h.status === 'Realizado e Pago' ? 'bg-emerald-50 text-emerald-800' : h.status === 'Cancelado' ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-700'}`}>{h.status}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Creation context forms */}
+            {localTab === 'cli' && (
+              <form onSubmit={handleCliSubmit} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-xs space-y-3 animate-fade-in">
+                <h3 className="font-black text-slate-800 uppercase border-b pb-2 mb-2 flex items-center gap-1"><Icon name="Plus"/> Lançar Cliente</h3>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Nome Completo*</label>
+                  <input type="text" value={cliNome} onChange={(e) => setCliNome(e.target.value)} placeholder="Paula Albuquerque" required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Telefone de Contato*</label>
+                  <input type="text" value={cliTel} onChange={(e) => setCliTel(e.target.value)} placeholder="(11) 98765-4321" required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">WhatsApp / Endereço Eletrônico</label>
+                  <input type="email" value={cliMail} onChange={(e) => setCliMail(e.target.value)} placeholder="paula@gmail.com" className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Restrições / Nota Clínica</label>
+                  <textarea value={cliObs} onChange={(e) => setCliObs(e.target.value)} placeholder="Alergia a ácido salicílico..." className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50 h-16 resize-none" />
+                </div>
+                <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition">Cadastrar</button>
+              </form>
+            )}
+
+            {localTab === 'srv' && (
+              <form onSubmit={handleSrvSubmit} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-xs space-y-3 animate-fade-in">
+                <h3 className="font-black text-slate-800 uppercase border-b pb-2 mb-2 flex items-center gap-1"><Icon name="Plus"/> Lançar Procedimento</h3>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Nome do Tratamento*</label>
+                  <input type="text" value={srvNome} onChange={(e) => setSrvNome(e.target.value)} placeholder="Peeling de Porcelana" required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Apresentação / Descrição</label>
+                  <input type="text" value={srvDesc} onChange={(e) => setSrvDesc(e.target.value)} placeholder="Máscara revitalizadora de argila branca e colágeno" className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="block text-slate-500 font-bold">Preço de Tabela (R$)*</label>
+                    <input type="number" step="0.01" value={srvPreco} onChange={(e) => setSrvPreco(e.target.value)} required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-slate-500 font-bold">Tempo (min)*</label>
+                    <input type="number" value={srvTempo} onChange={(e) => setSrvTempo(e.target.value)} required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition">Catalogar Serviço</button>
+              </form>
+            )}
+
+            {localTab === 'prof' && (
+              <form onSubmit={handleProfSubmit} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-xs space-y-3 animate-fade-in">
+                <h3 className="font-black text-slate-800 uppercase border-b pb-2 mb-2 flex items-center gap-1"><Icon name="Plus"/> Nova Esteticista</h3>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Nome Completo*</label>
+                  <input type="text" value={profNome} onChange={(e) => setProfNome(e.target.value)} placeholder="Roberta Silva" required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-slate-500 font-bold">Especialidade / Foco</label>
+                  <input type="text" value={profEsp} onChange={(e) => setProfEsp(e.target.value)} placeholder="Lipo sem cortes e drenagens avançadas" className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="block text-slate-500 font-bold">Comissão (%)*</label>
+                    <input type="number" value={profCom} onChange={(e) => setProfCom(e.target.value)} placeholder="40" required className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-slate-500 font-bold">Telefone*</label>
+                    <input type="text" value={profTel} onChange={(e) => setProfTel(e.target.value)} placeholder="(11) 91122-3344" className="w-full p-2 border border-slate-200 rounded-xl focus:outline-indigo-600 bg-slate-50" />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition">Cadastrar Membro</button>
+              </form>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // --- SUBVIEW 5: DOCUMENTACAO BD ACCORDION TAB ---
+    function DocumentacaoTab() {
+      const [activeSec, setActiveSec] = useState('rf');
+      return (
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-xs overflow-hidden leading-relaxed text-slate-700 text-xs font-sans">
+          <div className="p-5 border-b bg-slate-50/50 flex items-center gap-2">
+            <Icon name="Database" className="w-5 h-5 text-indigo-500" />
+            <div>
+              <h2 className="font-extrabold text-slate-900 text-sm">Estruturas Contábeis e Modelagem SQL</h2>
+              <p className="text-[10px] text-slate-400 mt-0.5">Auditoria e regras de integridade relacional do Atelier Estética</p>
+            </div>
+          </div>
+
+          <div className="flex border-b border-slate-100 bg-slate-50/20 text-center font-bold">
+            <button onClick={() => setActiveSec('rf')} className={`flex-1 py-3 transition ${activeSec === 'rf' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Regras Funcionais</button>
+            <button onClick={() => setActiveSec('db')} className={`flex-1 py-3 transition ${activeSec === 'db' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Dicionário ER</button>
+            <button onClick={() => setActiveSec('sql')} className={`flex-1 py-3 transition ${activeSec === 'sql' ? 'bg-white text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Código Código SQL DDL</button>
+          </div>
+
+          <div className="p-5 md:p-6 space-y-4">
+            {activeSec === 'rf' && (
+              <div className="space-y-3.5">
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Regras de Negócio Implementadas</span>
+                <p>O fluxo baseia-se em <strong>Sincronização Dupla de Caixa</strong>:</p>
+                <ol className="list-decimal pl-4 space-y-2 text-slate-600 text-[11px]">
+                  <li>Quando um agendamento é marcado como feito e pago, registra-se uma <strong>Entrada</strong> de faturamento síncrona.</li>
+                  <li>Paralelamente, o sistema calcula a comissão correspondente e deduz uma <strong>Saída por Comissão</strong> com link direto ao agendamento associado.</li>
+                  <li>Isso protege a saúde financeira, prevenindo divergências físicas de tesouro no final do mês.</li>
+                </ol>
+              </div>
+            )}
+
+            {activeSec === 'db' && (
+              <div className="space-y-3.5">
+                <span className="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Mapeamento Físico de Chaves de Enlace</span>
+                <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                  <table className="w-full text-left text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-100"><th className="p-2.5">Entidade</th><th className="p-2.5">Chave</th><th className="p-2.5">Vinculo</th><th className="p-2.5">Regra DDL</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-500">
+                      <tr><td className="p-2.5 font-bold text-slate-800">agendamentos</td><td className="p-2.5">cliente_id</td><td className="p-2.5">clientes(id)</td><td className="p-2.5">ON DELETE SET NULL</td></tr>
+                      <tr><td className="p-2.5 font-bold text-slate-800">agendamentos</td><td className="p-2.5">profissional_id</td><td className="p-2.5">profissionais(id)</td><td className="p-2.5">ON DELETE RESTRICT</td></tr>
+                      <tr><td className="p-2.5 font-bold text-slate-800">transacoes</td><td className="p-2.5">agendamento_id</td><td className="p-2.5">agendamentos(id)</td><td className="p-2.5">ON DELETE CASCADE</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeSec === 'sql' && (
+              <pre className="p-4 bg-slate-950 text-slate-300 font-mono text-[10px] overflow-x-auto rounded-xl max-w-full leading-5">
+{`-- DDL Ideal para PostgreSQL / SQLite e MySQL
+CREATE TABLE clientes (
+  id VARCHAR(36) PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  telefone VARCHAR(20) NOT NULL,
+  email VARCHAR(100),
+  observacoes TEXT,
+  data_cadastro DATE DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE servicos (
+  id VARCHAR(36) PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  preco DECIMAL(10,2) NOT NULL,
+  tempo_estimado INT NOT NULL
+);
+
+CREATE TABLE profissionais (
+  id VARCHAR(36) PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  comissao_percentual DECIMAL(5,2) NOT NULL CHECK(comissao_percentual > 0)
+);`}
+              </pre>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Render client context
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
